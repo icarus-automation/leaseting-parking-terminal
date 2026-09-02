@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Leaseting Parking Terminal</string>
+
+    <!-- Session restore -->
+    <string name="session_restoring">Checking your session…</string>
+
+    <!-- Sign in -->
+    <string name="login_title">Sign in</string>
+    <string name="login_subtitle">Use your parking attendant account.</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_show_password">Show</string>
+    <string name="login_hide_password">Hide</string>
+    <string name="login_submit">Sign in</string>
+    <string name="login_error_invalid_credentials">Incorrect email or password.</string>
+    <string name="login_error_not_parking_account">This account is not a parking attendant. Use the Leaseting web app instead.</string>
+    <string name="login_error_unreachable">Can\'t reach the server. Check the connection and try again.</string>
+    <string name="login_error_server">Something went wrong. Please try again.</string>
+
+    <!-- Terminal home -->
+    <string name="home_title">Parking Terminal</string>
+    <string name="home_signed_in_as">Signed in as</string>
+    <string name="home_ready_title">Ready for transactions</string>
+    <string name="home_ready_body">Parking entry, exit and receipt printing arrive in the next release.</string>
+    <string name="home_sign_out">Sign out</string>
+    <string name="home_sign_out_title">Sign out?</string>
+    <string name="home_sign_out_body">You will need your email and password to use this terminal again.</string>
+    <string name="action_cancel">Cancel</string>
+</resources>

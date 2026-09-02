@@ -1,0 +1,16 @@
+# Normalize to LF in the repository; check out with the platform's own endings.
+* text=auto eol=lf
+
+# gradlew is executed by /bin/sh on CI and on any Linux or macOS checkout.
+# A CRLF copy fails with "bad interpreter", so pin it regardless of platform.
+gradlew text eol=lf
+
+# Windows scripts need CRLF to run.
+*.bat text eol=crlf
+
+# Never touched by end-of-line normalization.
+*.jar binary
+*.webp binary
+*.png binary
+*.keystore binary
+*.jks binary

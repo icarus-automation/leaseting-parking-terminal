@@ -1,0 +1,27 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+vendor/h10s/
+
+# Kotlin build session data
+.kotlin/
+
+# Per-developer IDE state the stock Android template predates
+/.idea/deploymentTargetSelector.xml
+/.idea/deploymentTargetDropDown.xml
+
+# Per-developer agent settings
+/.claude/settings.local.json

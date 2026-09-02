@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug builds only. A leaseting-api running on a development machine is plain
+  HTTP; release builds keep Android's default, which refuses cleartext outright.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
