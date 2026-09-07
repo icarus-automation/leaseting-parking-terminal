@@ -62,18 +62,17 @@ fun ParkingTerminalNavHost(
     val attendant = (sessionState as? SessionState.SignedIn)?.attendant
     val shift = (shiftState as? ShiftState.Open)?.shift
 
-    // The root a given state belongs at. Null while the shift is still unknown:
-    // a guard who holds one must not see the picker flash past on a cold start.
+    // The root a given state belongs at. A shift that is still unknown reads as
+    // no shift, which sends the guard to the picker — the caller holds the
+    // splash until the API has been asked, and picking the same gate again
+    // hands back a shift they already hold, so a failed check costs one tap.
     val root = when {
         attendant == null -> LoginRoute
-        shiftState is ShiftState.Unknown -> null
         shift == null -> TerminalPickerRoute
         else -> GateRoute
     }
 
     LaunchedEffect(root) {
-        if (root == null) return@LaunchedEffect
-
         val current = navController.currentDestination
         val alreadyThere = when (root) {
             LoginRoute -> current?.hasRoute(LoginRoute::class) == true

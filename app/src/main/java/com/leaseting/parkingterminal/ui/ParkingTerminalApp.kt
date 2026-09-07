@@ -37,18 +37,27 @@ fun ParkingTerminalApp(
 ) {
     val sessionState by sessionViewModel.sessionState.collectAsStateWithLifecycle()
     val shiftState by shiftHostViewModel.shiftState.collectAsStateWithLifecycle()
+    val hasCheckedShift by shiftHostViewModel.hasCheckedShift.collectAsStateWithLifecycle()
 
     val isSignedIn = sessionState is SessionState.SignedIn
+    val isShiftUnknown = shiftState is ShiftState.Unknown
 
     // Covers both sign-in and a cold start with a stored session: a handheld
     // that restarted mid-shift comes back to the same till.
-    LaunchedEffect(isSignedIn, shiftState is ShiftState.Unknown) {
-        if (isSignedIn && shiftState is ShiftState.Unknown) shiftHostViewModel.refresh()
+    LaunchedEffect(isSignedIn, isShiftUnknown) {
+        if (isSignedIn && isShiftUnknown) shiftHostViewModel.refresh()
     }
 
-    when (sessionState) {
-        SessionState.Restoring -> RestoringSessionScreen(modifier)
-        else -> ParkingTerminalNavHost(
+    // Hold the splash until both questions are answered. Drawing the graph with
+    // the shift still in flight would land a signed-in guard on the login
+    // screen, because that is where the graph starts.
+    val isPreparing = sessionState is SessionState.Restoring ||
+        (isSignedIn && isShiftUnknown && !hasCheckedShift)
+
+    if (isPreparing) {
+        RestoringSessionScreen(modifier)
+    } else {
+        ParkingTerminalNavHost(
             sessionState = sessionState,
             shiftState = shiftState,
             onSignOut = sessionViewModel::signOut,
