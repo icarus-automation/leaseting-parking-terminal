@@ -45,6 +45,19 @@ and the on-device session work:
 
 - `docs/integrations/leaseting-api-auth.md`
 
+The gate loop it drives once signed in — shifts, entries, fee pricing, paid
+exits, end-of-shift cash declaration, and the Phase 2B admin contract:
+
+- `docs/integrations/leaseting-api-parking.md`
+
+One rule from that document governs anything touching money:
+
+**The terminal never computes a fee.** Rate plans, tiers, overnight windows,
+grace and rounding are staff settings that change in the web client at any
+time, so the API prices every stay at the moment of the exit. Do not add a fee,
+waive, discount or override field to a request the terminal sends, and do not
+reimplement the rate board on the device.
+
 ## H10S Hardware Integration
 
 The application runs on an H10S Android handheld terminal.
