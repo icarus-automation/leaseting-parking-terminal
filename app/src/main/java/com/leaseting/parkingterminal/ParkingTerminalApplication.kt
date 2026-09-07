@@ -13,5 +13,8 @@ class ParkingTerminalApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = DefaultAppContainer(this)
+        // Binding takes a moment and reports nothing back, so it starts as early
+        // as possible: the first stub of the day should not wait for it.
+        container.bindPrinter()
     }
 }

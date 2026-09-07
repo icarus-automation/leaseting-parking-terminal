@@ -17,13 +17,91 @@
     <string name="login_error_unreachable">Can\'t reach the server. Check the connection and try again.</string>
     <string name="login_error_server">Something went wrong. Please try again.</string>
 
-    <!-- Terminal home -->
-    <string name="home_title">Parking Terminal</string>
-    <string name="home_signed_in_as">Signed in as</string>
-    <string name="home_ready_title">Ready for transactions</string>
-    <string name="home_ready_body">Parking entry, exit and receipt printing arrive in the next release.</string>
-    <string name="home_sign_out">Sign out</string>
-    <string name="home_sign_out_title">Sign out?</string>
-    <string name="home_sign_out_body">You will need your email and password to use this terminal again.</string>
+    <!-- Shared actions -->
     <string name="action_cancel">Cancel</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="sign_out_title">Sign out?</string>
+    <string name="action_done">Done</string>
+    <string name="action_retry">Try again</string>
+
+    <!-- Parking failures. Fallbacks only: the API\'s own message is preferred. -->
+    <string name="parking_error_unreachable">Can\'t reach the server. Check the connection and try again.</string>
+    <string name="parking_error_not_found">That record no longer exists.</string>
+    <string name="parking_error_conflict">Someone got there first. Refresh and check before trying again.</string>
+    <string name="parking_error_rejected">That was turned down. Check the details and try again.</string>
+    <string name="parking_error_server">Something went wrong. Please try again.</string>
+
+    <!-- Terminal picker -->
+    <string name="terminal_picker_title">Choose your gate</string>
+    <string name="terminal_picker_subtitle">Opening a shift here is what lets you record entries and take payments.</string>
+    <string name="terminal_picker_loading">Loading terminals…</string>
+    <string name="terminal_picker_empty_title">No terminals available</string>
+    <string name="terminal_picker_empty_body">Ask an administrator to add a terminal under Settings &gt; Parking Management, then try again.</string>
+
+    <!-- Gate -->
+    <string name="gate_shift_opened">Shift opened %1$s</string>
+    <string name="gate_attendant">Attendant: %1$s</string>
+    <string name="gate_till_title">Cash expected this shift</string>
+    <string name="gate_stat_entries">Entries</string>
+    <string name="gate_stat_exits">Paid exits</string>
+    <string name="gate_action_entry">Vehicle in</string>
+    <string name="gate_action_exit">Vehicle out</string>
+    <string name="gate_action_end_shift">End shift</string>
+    <string name="gate_sign_out_body">Your shift stays open and you will come back to it. You will need your email and password to use this terminal again.</string>
+
+    <!-- Entry -->
+    <string name="entry_title">Vehicle in</string>
+    <string name="entry_vehicle_type_label">Vehicle type</string>
+    <string name="entry_plate_label">Plate number</string>
+    <string name="entry_submit">Record entry</string>
+    <string name="entry_recorded">Entry recorded</string>
+    <string name="entry_next_vehicle">Next vehicle</string>
+    <string name="entry_reprint">Print stub again</string>
+
+    <!-- Finding a vehicle on the way out -->
+    <string name="find_title">Vehicle out</string>
+    <string name="find_code_label">Stub code</string>
+    <string name="find_code_hint">Scan the stub, or type the code printed on it.</string>
+    <string name="find_code_already_settled">Stub %1$s has already been paid.</string>
+    <string name="find_plate_label">Search by plate</string>
+    <string name="find_empty_list">Nothing is in the park at this terminal.</string>
+    <string name="find_empty_search">No vehicle in the park matches that plate.</string>
+
+    <!-- Exit and payment -->
+    <string name="exit_title">Collect payment</string>
+    <string name="exit_pricing">Pricing this stay…</string>
+    <string name="exit_no_quote">Couldn\'t price this stay.</string>
+    <string name="exit_detail_in">Time in</string>
+    <string name="exit_detail_stay">Duration</string>
+    <string name="exit_detail_grace">Free grace</string>
+    <string name="exit_detail_rate">Rate</string>
+    <string name="exit_fee_label">Amount due</string>
+    <string name="exit_cash_label">Cash received</string>
+    <string name="exit_cash_exact">Exact</string>
+    <string name="exit_cash_short">Less than the amount due.</string>
+    <string name="exit_change_label">Change</string>
+    <string name="exit_collect">Collect and release</string>
+    <string name="exit_collected">Payment collected</string>
+    <string name="exit_next_vehicle">Next vehicle</string>
+    <string name="exit_reprint">Print receipt again</string>
+
+    <!-- End of shift -->
+    <string name="end_shift_title">End shift</string>
+    <string name="end_shift_no_summary">Couldn\'t load this shift\'s totals.</string>
+    <string name="end_shift_expected_label">Expected</string>
+    <string name="end_shift_counted_label">Cash counted</string>
+    <string name="end_shift_note_label">Note (optional)</string>
+    <string name="end_shift_variance_exact">Balanced</string>
+    <string name="end_shift_variance_over">Over by</string>
+    <string name="end_shift_variance_short">Short by</string>
+    <string name="end_shift_submit">Submit for confirmation</string>
+    <string name="end_shift_footnote">Your count goes to an administrator to confirm. A shift cannot be reopened once submitted.</string>
+    <string name="end_shift_declared_title">Shift submitted</string>
+    <string name="end_shift_declared_body">An administrator will confirm this in the Leaseting web app. Hand the cash over as usual.</string>
+
+    <!-- Printing -->
+    <string name="print_printing">Printing…</string>
+    <string name="print_sent">Sent to the printer.</string>
+    <string name="print_error_unavailable">The printer isn\'t connected. The record is saved; try printing again.</string>
+    <string name="print_error_failed">Printing failed. The record is saved; try printing again.</string>
 </resources>

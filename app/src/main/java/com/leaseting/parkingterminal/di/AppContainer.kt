@@ -11,7 +11,12 @@ import com.leaseting.parkingterminal.data.auth.DefaultAuthRepository
 import com.leaseting.parkingterminal.data.auth.local.EncryptedSessionStore
 import com.leaseting.parkingterminal.data.auth.local.SessionCipher
 import com.leaseting.parkingterminal.data.auth.remote.AuthApi
+import com.leaseting.parkingterminal.data.parking.DefaultParkingRepository
+import com.leaseting.parkingterminal.data.parking.remote.ParkingApi
+import com.leaseting.parkingterminal.data.printing.H10sStubPrinter
 import com.leaseting.parkingterminal.domain.auth.AuthRepository
+import com.leaseting.parkingterminal.domain.parking.ParkingRepository
+import com.leaseting.parkingterminal.domain.printing.StubPrinter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +43,15 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  */
 interface AppContainer {
     val authRepository: AuthRepository
+    val parkingRepository: ParkingRepository
+    val stubPrinter: StubPrinter
+
+    /**
+     * Binds the vendor print service. Called once from
+     * [com.leaseting.parkingterminal.ParkingTerminalApplication]: the binding is
+     * process-wide and the SDK exposes no way to undo it.
+     */
+    fun bindPrinter()
 }
 
 class DefaultAppContainer(context: Context) : AppContainer {
@@ -80,19 +94,37 @@ class DefaultAppContainer(context: Context) : AppContainer {
         .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .build()
 
-    private val authApi: AuthApi = Retrofit.Builder()
+    private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(BuildConfig.API_BASE_URL)
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory(JSON_MEDIA_TYPE.toMediaType()))
         .build()
-        .create(AuthApi::class.java)
 
     override val authRepository: AuthRepository = DefaultAuthRepository(
-        authApi = authApi,
+        authApi = retrofit.create(AuthApi::class.java),
         sessionStore = sessionStore,
         ioDispatcher = Dispatchers.IO,
         externalScope = applicationScope,
     )
+
+    override val parkingRepository: ParkingRepository = DefaultParkingRepository(
+        parkingApi = retrofit.create(ParkingApi::class.java),
+        json = json,
+        ioDispatcher = Dispatchers.IO,
+        // The shift belongs to whoever is signed in, so the repository watches
+        // the session rather than waiting to be told a guard has gone.
+        sessionState = authRepository.sessionState,
+        externalScope = applicationScope,
+    )
+
+    private val h10sPrinter = H10sStubPrinter(
+        context = context.applicationContext,
+        ioDispatcher = Dispatchers.IO,
+    )
+
+    override val stubPrinter: StubPrinter = h10sPrinter
+
+    override fun bindPrinter() = h10sPrinter.bind()
 
     private companion object {
         const val SESSION_KEY_ALIAS = "leaseting_parking_terminal_session"
