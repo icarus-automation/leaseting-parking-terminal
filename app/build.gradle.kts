@@ -56,6 +56,10 @@ android {
         }
     }
     compileOptions {
+        // minSdk 24, but the terminal reasons about instants everywhere — entry,
+        // exit, shift open. Desugaring is what lets java.time be the vocabulary
+        // for that on a device older than API 26.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -66,6 +70,10 @@ android {
 }
 
 dependencies {
+    // The vendor H10S printer SDK. Binary source of truth for the printer API;
+    // see docs/integrations/h10s-printer.md before touching anything that calls it.
+    implementation(files("libs/printer.jar"))
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

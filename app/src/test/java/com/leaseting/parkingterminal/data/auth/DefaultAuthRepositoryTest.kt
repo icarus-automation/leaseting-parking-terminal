@@ -175,7 +175,65 @@ class DefaultAuthRepositoryTest {
         .setHeader("set-auth-token", token)
         .setBody("""{"redirect":false,"token":"$token"}""")
 
-    private fun currentUserResponse(audience: String) = MockResponse()
+    /**
+     * [displayName] null models a build of the API from before the field, which
+     * is the only case where `name` is allowed anywhere near a receipt.
+     */
+    /**
+     * The Attendant line names a person.
+     *
+     * `name` is what a shared login carries, and it is what printed
+     * "Parking Attendant" on real paper. `displayName` is the person, so it is
+     * the one that gets stored and printed.
+     * See `docs/integrations/attendant-display-name.md`.
+     */
+    @Test
+    fun `stores the person's display name rather than the account name`() = runTest {
+        server.enqueue(signInResponse(token = "session-token"))
+        server.enqueue(
+            currentUserResponse(
+                audience = "parking",
+                name = "Parking Attendant",
+                displayName = "Ana Reyes",
+            ),
+        )
+
+        repository().signIn("parkingattendant@leaseting.com", "parking123")
+
+        assertEquals("Ana Reyes", sessionStore.stored?.attendantName)
+    }
+
+    @Test
+    fun `falls back to the account name when the api sends no display name`() = runTest {
+        server.enqueue(signInResponse(token = "session-token"))
+        server.enqueue(currentUserResponse(audience = "parking", name = "Ana Reyes"))
+
+        repository().signIn("parkingattendant@leaseting.com", "parking123")
+
+        assertEquals("Ana Reyes", sessionStore.stored?.attendantName)
+    }
+
+    @Test
+    fun `treats a blank display name as absent rather than printing nothing`() = runTest {
+        server.enqueue(signInResponse(token = "session-token"))
+        server.enqueue(
+            currentUserResponse(
+                audience = "parking",
+                name = "Ana Reyes",
+                displayName = "   ",
+            ),
+        )
+
+        repository().signIn("parkingattendant@leaseting.com", "parking123")
+
+        assertEquals("Ana Reyes", sessionStore.stored?.attendantName)
+    }
+
+    private fun currentUserResponse(
+        audience: String,
+        name: String = "Parking Attendant",
+        displayName: String? = null,
+    ) = MockResponse()
         .setResponseCode(200)
         .setBody(
             """
@@ -184,7 +242,8 @@ class DefaultAuthRepositoryTest {
               "message": "Success",
               "data": {
                 "id": "user-1",
-                "name": "Parking Attendant",
+                "name": "$name",
+                ${displayName?.let { "\"displayName\": \"$it\"," } ?: ""}
                 "email": "parkingattendant@leaseting.com",
                 "organizationRole": "parking_attendant",
                 "audience": "$audience"

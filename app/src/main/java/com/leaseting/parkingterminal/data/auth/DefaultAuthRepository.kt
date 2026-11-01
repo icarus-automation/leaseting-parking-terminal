@@ -75,7 +75,7 @@ class DefaultAuthRepository(
                 StoredSession(
                     token = token,
                     attendantId = user.id,
-                    attendantName = user.name,
+                    attendantName = user.attendantDisplayName(),
                     attendantEmail = user.email,
                 ),
             )
@@ -140,6 +140,16 @@ class DefaultAuthRepository(
     private fun Response<SignInResponse>.sessionToken(): String? =
         headers()[SET_AUTH_TOKEN]?.takeIf { it.isNotBlank() }
             ?: body()?.token?.takeIf { it.isNotBlank() }
+
+    /**
+     * The person, not the account.
+     *
+     * A receipt names whoever took the money, so it prints `displayName`.
+     * `name` is the fallback and nothing else: on a shared login it is the
+     * string that put "Parking Attendant" on real paper.
+     */
+    private fun CurrentUserResponse.attendantDisplayName(): String =
+        displayName?.takeIf { it.isNotBlank() } ?: name
 
     private fun StoredSession.toAttendant() = Attendant(
         id = attendantId,

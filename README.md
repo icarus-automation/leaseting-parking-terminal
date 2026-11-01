@@ -25,6 +25,8 @@ Light theme only, no dynamic color. Every color literal lives in
 
 ## Running it
 
+Short H10S setup: [`docs/local-testing.md`](docs/local-testing.md).
+
 Release builds point at production. Debug builds default to
 `http://10.0.2.2:8000/api/v1/`, which is the emulator's route to the host
 machine and means nothing on a physical device, so override it in
@@ -63,6 +65,31 @@ Settings > Parking Management > Parking attendants.
 Full flow, session storage, and session lifetime:
 [`docs/integrations/leaseting-api-auth.md`](docs/integrations/leaseting-api-auth.md).
 
+## The gate loop
+
+After signing in, the guard picks the terminal they are standing at and opens a
+shift on it. Everything else hangs off that shift:
+
+- **Vehicle in** records the stay and prints a stub carrying a QR and a short
+  code.
+- **Vehicle out** finds the vehicle by scanning or typing that code, by plate,
+  or from the list of what is still in the park; shows what the stay costs;
+  takes cash and prints a receipt.
+- **End shift** shows the cash the API expects, takes the guard's own count, and
+  submits both for an administrator to confirm in the web client.
+
+The terminal never computes a fee. Rate plans, grace and rounding are staff
+settings that change in the web client whenever they like, so the API prices
+every stay at the moment of the exit and the handheld shows that figure and
+posts cash against it. There is no waive, no override and no discount on the
+device; correcting a collected exit is an administrator's void.
+
+That makes the loop online-first. The offline queue in the PRD builds on top of
+it once the online path is proven, and it queues entries rather than fees.
+
+Endpoints, payloads and the fee formula:
+[`docs/integrations/leaseting-api-parking.md`](docs/integrations/leaseting-api-parking.md).
+
 ## Documentation
 
 | File | What it covers |
@@ -70,6 +97,7 @@ Full flow, session storage, and session lifetime:
 | [`AGENTS.md`](AGENTS.md) | Repository conventions and hard rules |
 | [`docs/PRD.md`](docs/PRD.md) | What the application must do |
 | [`docs/integrations/leaseting-api-auth.md`](docs/integrations/leaseting-api-auth.md) | Authentication against `leaseting-api` |
+| [`docs/integrations/leaseting-api-parking.md`](docs/integrations/leaseting-api-parking.md) | Shifts, entries, fees and paid exits |
 | [`docs/integrations/h10s-printer.md`](docs/integrations/h10s-printer.md) | Talking to the handheld's printer |
 
 `app/libs/printer.jar` is the vendor SDK and the binary source of truth for
@@ -80,4 +108,4 @@ vendor's and must not be corrected.
 
 - `leaseting-api` — NestJS backend and PostgreSQL system of record
 - `leaseting-client` — web administration and reports
-- `leaseting-mobile` — Residence Care resident app
+- `leaseting-residence-care`: Residence Care resident app
