@@ -21,11 +21,18 @@ data class SignInResponse(
     val token: String? = null,
 )
 
-/** `GET /users/me` payload, inside the standard envelope. */
+/**
+ * `GET /users/me` payload, inside the standard envelope.
+ *
+ * [displayName] is the person, and it is what an Attendant line prints.
+ * [name] is kept only as the fallback for a build of the API that predates
+ * the field. See `docs/integrations/attendant-display-name.md`.
+ */
 @Serializable
 data class CurrentUserResponse(
     val id: String,
     val name: String,
+    val displayName: String? = null,
     val email: String,
     val organizationRole: String? = null,
     val audience: String? = null,

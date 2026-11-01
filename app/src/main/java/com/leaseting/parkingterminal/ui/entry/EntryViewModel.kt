@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.leaseting.parkingterminal.domain.auth.AuthRepository
+import com.leaseting.parkingterminal.domain.auth.SessionState
 import com.leaseting.parkingterminal.domain.parking.ParkingRepository
 import com.leaseting.parkingterminal.domain.parking.ParkingResult
 import com.leaseting.parkingterminal.domain.parking.ParkingSession
@@ -49,6 +51,7 @@ data class EntryUiState(
  */
 class EntryViewModel(
     private val parkingRepository: ParkingRepository,
+    private val authRepository: AuthRepository,
     private val stubPrinter: StubPrinter,
 ) : ViewModel() {
 
@@ -69,9 +72,8 @@ class EntryViewModel(
                         it.copy(
                             isLoadingVehicleTypes = false,
                             vehicleTypes = types,
-                            // One type is not a choice, it is the answer.
                             selectedVehicleTypeId = it.selectedVehicleTypeId
-                                ?: types.singleOrNull()?.id,
+                                ?: types.defaultSelection()?.id,
                         )
                     }
                 }
@@ -115,6 +117,7 @@ class EntryViewModel(
     fun printStub() {
         val session = _uiState.value.recorded ?: return
         val shift = (parkingRepository.shiftState.value as? ShiftState.Open)?.shift ?: return
+        val signedIn = (authRepository.sessionState.value as? SessionState.SignedIn)?.attendant
 
         _uiState.update { it.copy(printState = PrintState.Printing) }
         viewModelScope.launch {
@@ -126,6 +129,11 @@ class EntryViewModel(
                     propertyName = shift.propertyName,
                     terminalName = shift.terminalName,
                     entryAt = formatTime(session.entryAt),
+                    // The API's own record of who booked it in. The signed-in
+                    // attendant is the same person in every ordinary case, and is
+                    // only reached for if a build of the API omits the field.
+                    attendantName = session.entryAttendantName
+                        ?: signedIn?.name.orEmpty(),
                 ),
             )
             _uiState.update { it.copy(printState = result.toPrintState()) }
@@ -152,8 +160,32 @@ class EntryViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val container = appContainer()
-                EntryViewModel(container.parkingRepository, container.stubPrinter)
+                EntryViewModel(
+                    parkingRepository = container.parkingRepository,
+                    authRepository = container.authRepository,
+                    stubPrinter = container.stubPrinter,
+                )
             }
         }
     }
 }
+
+/**
+ * The type a guard would otherwise tap first, every time.
+ *
+ * Nearly everything through the barrier is a car, so the form arrives ready for
+ * one and the guard changes it for the exception. The chip stays visibly
+ * selected, which is what keeps the default honest: a motorcycle priced as a car
+ * is a wrong fee, and the only thing standing between that and the till is the
+ * guard seeing which chip is lit.
+ *
+ * Matched on the name rather than a flag, because the API has no notion of a
+ * default and these rows are staff-editable in the web client. An organization
+ * that calls it something else gets no preselection rather than the wrong one.
+ */
+internal fun List<VehicleType>.defaultSelection(): VehicleType? =
+    firstOrNull { it.name.trim().equals(DEFAULT_VEHICLE_TYPE_NAME, ignoreCase = true) }
+        // One type is not a choice, it is the answer.
+        ?: singleOrNull()
+
+private const val DEFAULT_VEHICLE_TYPE_NAME = "Car"

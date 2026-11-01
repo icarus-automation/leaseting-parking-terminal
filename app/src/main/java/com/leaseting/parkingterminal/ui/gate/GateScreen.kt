@@ -1,26 +1,23 @@
 package com.leaseting.parkingterminal.ui.gate
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,7 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,11 +36,21 @@ import com.leaseting.parkingterminal.domain.auth.Attendant
 import com.leaseting.parkingterminal.domain.parking.ParkingShift
 import com.leaseting.parkingterminal.domain.parking.ParkingShiftStatus
 import com.leaseting.parkingterminal.domain.parking.ShiftSummary
+import com.leaseting.parkingterminal.ui.components.CardDivider
+import com.leaseting.parkingterminal.ui.components.CardTone
+import com.leaseting.parkingterminal.ui.components.EyebrowLabel
+import com.leaseting.parkingterminal.ui.components.PrimaryAction
+import com.leaseting.parkingterminal.ui.components.ScreenColumn
+import com.leaseting.parkingterminal.ui.components.SecondaryAction
+import com.leaseting.parkingterminal.ui.components.SectionCard
+import com.leaseting.parkingterminal.ui.components.TerminalBarAction
+import com.leaseting.parkingterminal.ui.components.TerminalScaffold
 import com.leaseting.parkingterminal.ui.format.formatAmount
 import com.leaseting.parkingterminal.ui.format.formatTime
 import com.leaseting.parkingterminal.ui.parking.userMessage
 import com.leaseting.parkingterminal.ui.theme.LeasetingParkingTerminalTheme
-import com.leaseting.parkingterminal.ui.theme.extendedColors
+import com.leaseting.parkingterminal.ui.theme.Spacing
+import com.leaseting.parkingterminal.ui.theme.motion
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -82,7 +89,6 @@ fun GateScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GateScreen(
     attendant: Attendant,
@@ -106,56 +112,35 @@ private fun GateScreen(
         }
     }
 
-    Scaffold(
+    TerminalScaffold(
+        title = shift.terminalName,
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(shift.terminalName) },
-                actions = {
-                    TextButton(onClick = { isConfirmingSignOut = true }) {
-                        Text(stringResource(R.string.action_sign_out))
-                    }
-                },
+        actions = {
+            TerminalBarAction(
+                text = stringResource(R.string.action_sign_out),
+                onClick = { isConfirmingSignOut = true },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            ShiftCard(shift = shift, attendant = attendant)
+        ScreenColumn(innerPadding) {
+            ShiftHeader(shift = shift, attendant = attendant)
             TillCard(summary = uiState.summary)
 
-            Button(
+            Spacer(Modifier.height(Spacing.Tight))
+
+            PrimaryAction(
+                text = stringResource(R.string.gate_action_entry),
                 onClick = onRecordEntry,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(BIG_BUTTON_HEIGHT),
-            ) {
-                Text(
-                    text = stringResource(R.string.gate_action_entry),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-            Button(
+            )
+            PrimaryAction(
+                text = stringResource(R.string.gate_action_exit),
                 onClick = onVehicleOut,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(BIG_BUTTON_HEIGHT),
-            ) {
-                Text(
-                    text = stringResource(R.string.gate_action_exit),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-            OutlinedButton(onClick = onEndShift, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.gate_action_end_shift))
-            }
+            )
+            SecondaryAction(
+                text = stringResource(R.string.gate_action_end_shift),
+                onClick = onEndShift,
+            )
         }
     }
 
@@ -170,79 +155,92 @@ private fun GateScreen(
     }
 }
 
+/**
+ * Whose shift this is and where, as a page heading rather than a card. It is
+ * context for everything below it, so it should not compete with the till for
+ * a card of its own.
+ */
 @Composable
-private fun ShiftCard(shift: ParkingShift, attendant: Attendant, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = shift.propertyName,
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = stringResource(R.string.gate_shift_opened, formatTime(shift.openedAt)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = stringResource(R.string.gate_attendant, attendant.name),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+private fun ShiftHeader(
+    shift: ParkingShift,
+    attendant: Attendant,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
+    ) {
+        Text(
+            text = shift.propertyName,
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = stringResource(R.string.gate_shift_opened, formatTime(shift.openedAt)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = stringResource(R.string.gate_attendant, attendant.name),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
 /**
  * Cash owed, next to what produced it. Shown as "expected" everywhere so a
  * guard never reads it as a figure the count has to be forced to match.
+ *
+ * The figure crossfades when it moves. Coming back from a collection, that is
+ * the confirmation that the money landed on the shift, without a banner having
+ * to say so.
  */
 @Composable
 private fun TillCard(summary: ShiftSummary?, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+    val expected = formatAmount(summary?.expectedCash ?: BigDecimal.ZERO)
+    val standard = motion.standard
+
+    SectionCard(modifier = modifier, tone = CardTone.Brand, verticalSpacing = Spacing.Small) {
+        EyebrowLabel(
+            text = stringResource(R.string.gate_till_title),
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        AnimatedContent(
+            targetState = expected,
+            transitionSpec = { fadeIn(tween(standard)) togetherWith fadeOut(tween(standard)) },
+            label = "expected-cash",
+        ) { amount ->
+            Text(text = amount, style = MaterialTheme.typography.displaySmall)
+        }
+        CardDivider()
+        Row(
+            modifier = Modifier.padding(top = Spacing.Tight),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Loose),
         ) {
-            Text(
-                text = stringResource(R.string.gate_till_title),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Stat(
+                label = stringResource(R.string.gate_stat_entries),
+                value = (summary?.entryCount ?: 0).toString(),
             )
-            Text(
-                text = formatAmount(summary?.expectedCash ?: BigDecimal.ZERO),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.extendedColors.success,
+            Stat(
+                label = stringResource(R.string.gate_stat_exits),
+                value = (summary?.paidExitCount ?: 0).toString(),
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Stat(
-                    label = stringResource(R.string.gate_stat_entries),
-                    value = (summary?.entryCount ?: 0).toString(),
-                )
-                Stat(
-                    label = stringResource(R.string.gate_stat_exits),
-                    value = (summary?.paidExitCount ?: 0).toString(),
-                )
-            }
         }
     }
 }
 
 @Composable
 private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(text = value, style = MaterialTheme.typography.titleLarge)
-        Text(
+    Column(
+        modifier = modifier.width(STAT_WIDTH),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Hair),
+    ) {
+        Text(text = value, style = MaterialTheme.typography.headlineSmall)
+        EyebrowLabel(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Start,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
 }
@@ -251,10 +249,21 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
 private fun SignOutDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.sign_out_title)) },
+        shape = MaterialTheme.shapes.large,
+        title = {
+            Text(
+                text = stringResource(R.string.sign_out_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
         // Signing out leaves the shift open on purpose: the till is still that
         // guard's, and they come back to it when they sign in again.
-        text = { Text(stringResource(R.string.gate_sign_out_body)) },
+        text = {
+            Text(
+                text = stringResource(R.string.gate_sign_out_body),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
         confirmButton = {
             TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_sign_out)) }
         },
@@ -264,9 +273,10 @@ private fun SignOutDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-private val BIG_BUTTON_HEIGHT = 72.dp
+/** Wide enough for four digits, so the two stats stay on the same grid. */
+private val STAT_WIDTH = 84.dp
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, heightDp = 780)
 @Composable
 private fun GateScreenPreview() {
     LeasetingParkingTerminalTheme {
@@ -283,7 +293,12 @@ private fun GateScreenPreview() {
                 declaredCash = null,
             ),
             uiState = GateUiState(
-                summary = ShiftSummary("s1", entryCount = 24, paidExitCount = 19, expectedCash = BigDecimal("1850.00")),
+                summary = ShiftSummary(
+                    shiftId = "s1",
+                    entryCount = 24,
+                    paidExitCount = 19,
+                    expectedCash = BigDecimal("1850.00"),
+                ),
             ),
             onRecordEntry = {},
             onVehicleOut = {},

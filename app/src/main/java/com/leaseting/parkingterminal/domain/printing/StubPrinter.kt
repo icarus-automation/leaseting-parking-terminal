@@ -29,6 +29,8 @@ data class EntryStub(
     val propertyName: String,
     val terminalName: String,
     val entryAt: String,
+    /** The person who booked it in, never a role. */
+    val attendantName: String,
 )
 
 /** The receipt for a collected exit. Amounts are already formatted for paper. */

@@ -92,6 +92,7 @@ class H10sStubPrinter(
         printer.row("Plate", stub.plateNumber)
         printer.row("Vehicle", stub.vehicleTypeName)
         printer.row("Time in", stub.entryAt)
+        printer.row("Attendant", stub.attendantName)
         printer.rule()
 
         printer.setAlignment(ALIGN_CENTER)
@@ -172,17 +173,19 @@ class H10sStubPrinter(
     }
 
     /**
-     * `printTableText` is the only two-column primitive the JAR exposes.
-     * Weights are relative column widths and alignment is per column, so a label
-     * sits left and its value right on one 58 mm line.
+     * A label and its value on one line, laid out by [ReceiptLayout] rather
+     * than by the vendor's `printTableText`. That primitive breaks a value
+     * mid-token the moment it outgrows its column, which is what put a time on
+     * the paper as `7:` / `46 PM`. See the layout's own notes.
      */
     private fun PrinterInterface.row(label: String, value: String) {
-        printTableText(arrayOf(label, value), ROW_WEIGHTS, ROW_ALIGNMENTS)
+        setAlignment(ALIGN_LEFT)
+        ReceiptLayout.row(label, value).forEach { line -> printText("$line\n") }
     }
 
     private fun PrinterInterface.rule() {
         setAlignment(ALIGN_LEFT)
-        printText("${"-".repeat(PAPER_COLUMNS)}\n")
+        printText("${ReceiptLayout.rule()}\n")
     }
 
     /** Enough blank lines that the tear-off edge clears the print head. */
@@ -220,12 +223,7 @@ class H10sStubPrinter(
         const val TEXT_SIZE_TITLE = 32f
         const val LINE_HEIGHT = 30f
 
-        /** Roughly what 58 mm holds at the body text size. */
-        const val PAPER_COLUMNS = 32
         const val FEED_LINES = 4
-
-        val ROW_WEIGHTS = intArrayOf(1, 1)
-        val ROW_ALIGNMENTS = intArrayOf(ALIGN_LEFT, 2)
 
         const val TICKET_CODE_LENGTH = 8
         const val TICKET_CODE_GROUP = 4

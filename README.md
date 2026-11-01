@@ -25,6 +25,8 @@ Light theme only, no dynamic color. Every color literal lives in
 
 ## Running it
 
+Short H10S setup: [`docs/local-testing.md`](docs/local-testing.md).
+
 Release builds point at production. Debug builds default to
 `http://10.0.2.2:8000/api/v1/`, which is the emulator's route to the host
 machine and means nothing on a physical device, so override it in

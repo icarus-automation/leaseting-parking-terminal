@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Leaseting Parking Terminal</string>
+    <string name="app_brand">Leaseting</string>
+    <string name="app_product">Parking Terminal</string>
 
     <!-- Session restore -->
     <string name="session_restoring">Checking your session…</string>
@@ -35,6 +37,8 @@
     <string name="terminal_picker_title">Choose your gate</string>
     <string name="terminal_picker_subtitle">Opening a shift here is what lets you record entries and take payments.</string>
     <string name="terminal_picker_loading">Loading terminals…</string>
+    <string name="terminal_picker_open">Open shift</string>
+    <string name="terminal_picker_section">Terminals</string>
     <string name="terminal_picker_empty_title">No terminals available</string>
     <string name="terminal_picker_empty_body">Ask an administrator to add a terminal under Settings &gt; Parking Management, then try again.</string>
 
@@ -42,6 +46,7 @@
     <string name="gate_shift_opened">Shift opened %1$s</string>
     <string name="gate_attendant">Attendant: %1$s</string>
     <string name="gate_till_title">Cash expected this shift</string>
+    <string name="gate_shift_section">This shift</string>
     <string name="gate_stat_entries">Entries</string>
     <string name="gate_stat_exits">Paid exits</string>
     <string name="gate_action_entry">Vehicle in</string>
@@ -57,6 +62,7 @@
     <string name="entry_recorded">Entry recorded</string>
     <string name="entry_next_vehicle">Next vehicle</string>
     <string name="entry_reprint">Print stub again</string>
+    <string name="entry_stub_code">Stub code</string>
 
     <!-- Finding a vehicle on the way out -->
     <string name="find_title">Vehicle out</string>
@@ -64,13 +70,20 @@
     <string name="find_code_hint">Scan the stub, or type the code printed on it.</string>
     <string name="find_code_already_settled">Stub %1$s has already been paid.</string>
     <string name="find_plate_label">Search by plate</string>
-    <string name="find_empty_list">Nothing is in the park at this terminal.</string>
-    <string name="find_empty_search">No vehicle in the park matches that plate.</string>
+    <string name="find_section_in_park">In the park</string>
+    <string name="find_loading">Loading the park…</string>
+    <string name="find_empty_list">Nothing is in the park</string>
+    <string name="find_empty_list_body">Vehicles show up here as soon as they are recorded in at this terminal.</string>
+    <string name="find_empty_search">No match for that plate</string>
+    <string name="find_empty_search_body">Only vehicles still in the park are searched. Check the plate, or scan the stub instead.</string>
 
     <!-- Exit and payment -->
     <string name="exit_title">Collect payment</string>
     <string name="exit_pricing">Pricing this stay…</string>
-    <string name="exit_no_quote">Couldn\'t price this stay.</string>
+    <string name="exit_no_quote">Couldn\'t price this stay</string>
+    <string name="exit_no_quote_body">The fee comes from the server, so this stay cannot be collected until it answers.</string>
+    <string name="exit_section_stay">The stay</string>
+    <string name="exit_section_payment">Payment</string>
     <string name="exit_detail_in">Time in</string>
     <string name="exit_detail_stay">Duration</string>
     <string name="exit_detail_grace">Free grace</string>
@@ -87,7 +100,9 @@
 
     <!-- End of shift -->
     <string name="end_shift_title">End shift</string>
-    <string name="end_shift_no_summary">Couldn\'t load this shift\'s totals.</string>
+    <string name="end_shift_no_summary">Couldn\'t load this shift\'s totals</string>
+    <string name="end_shift_no_summary_body">The count is checked against the server\'s figure, so it needs that figure first.</string>
+    <string name="end_shift_loading">Adding up this shift…</string>
     <string name="end_shift_expected_label">Expected</string>
     <string name="end_shift_counted_label">Cash counted</string>
     <string name="end_shift_note_label">Note (optional)</string>

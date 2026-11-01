@@ -21,8 +21,17 @@ import java.util.Locale
  */
 private val amountFormat = DecimalFormat("#,##0.00", DecimalFormatSymbols(Locale.ROOT))
 
+/**
+ * Pinned to [Locale.US] rather than [Locale.ROOT], unlike the money above.
+ *
+ * Root has no month names of its own. Android resolves `MMM` against it
+ * through ICU, which answers with CLDR's placeholders, and a September
+ * receipt came off the roll reading `09 M09 2026`. English abbreviations are
+ * what the web client shows and what a gate reads, so they are asked for by
+ * name.
+ */
 private val timeFormatter: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("dd MMM yyyy, h:mm a", Locale.ROOT)
+    DateTimeFormatter.ofPattern("dd MMM yyyy, h:mm a", Locale.US)
 
 const val PESO_SIGN = "₱"
 

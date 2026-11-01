@@ -139,7 +139,7 @@ class ExitViewModel(
         val paid = _uiState.value.paid ?: return
         val quote = _uiState.value.quote
         val shift = (parkingRepository.shiftState.value as? ShiftState.Open)?.shift ?: return
-        val attendant = (authRepository.sessionState.value as? SessionState.SignedIn)?.attendant
+        val signedIn = (authRepository.sessionState.value as? SessionState.SignedIn)?.attendant
 
         _uiState.update { it.copy(printState = PrintState.Printing) }
         viewModelScope.launch {
@@ -157,7 +157,11 @@ class ExitViewModel(
                     feeAmount = formatAmount(paid.feeAmount ?: BigDecimal.ZERO),
                     amountTendered = formatAmount(paid.amountTendered ?: BigDecimal.ZERO),
                     changeGiven = formatAmount(paid.changeGiven ?: BigDecimal.ZERO),
-                    attendantName = attendant?.name.orEmpty(),
+                    // Whoever the API recorded as collecting, which is the line
+                    // that has to match the books. It is the signed-in guard in
+                    // every ordinary case, and that is the only fallback.
+                    attendantName = paid.exitAttendantName
+                        ?: signedIn?.name.orEmpty(),
                 ),
             )
             _uiState.update { it.copy(printState = result.toPrintState()) }

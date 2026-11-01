@@ -73,7 +73,14 @@ data class CreateSessionRequest(
     val plateNumber: String,
 )
 
-/** Every parking session route answers with this. */
+/**
+ * Every parking session route answers with this.
+ *
+ * The two attendant fields are person names, and they are what an Attendant
+ * line prints. They differ when one guard books a vehicle in and another
+ * collects on the way out, which is what a shift change looks like on paper.
+ * See `docs/integrations/attendant-display-name.md`.
+ */
 @Serializable
 data class ParkingSessionDto(
     val id: String,
@@ -88,6 +95,9 @@ data class ParkingSessionDto(
     val feeAmount: String? = null,
     val amountTendered: String? = null,
     val changeGiven: String? = null,
+    val entryAttendantDisplayName: String? = null,
+    /** Null until the stay is paid. */
+    val exitAttendantDisplayName: String? = null,
 )
 
 /** `GET /parking/sessions/{id}/fee-preview`. */

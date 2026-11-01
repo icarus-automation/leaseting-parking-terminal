@@ -209,6 +209,33 @@ class DefaultParkingRepositoryTest {
         assertTrue(!body.contains("feeAmount"))
     }
 
+    /**
+     * The receipt names whoever the API recorded as collecting, which is not
+     * always whoever booked the vehicle in. A shift change mid-stay is exactly
+     * when those two differ, and the paper has to show the second one.
+     */
+    @Test
+    fun `carries both attendant names off a paid exit`() = runTest {
+        val repository = repositoryWithOpenShift()
+        server.enqueue(envelope(PAID_SESSION_JSON))
+
+        val paid = (repository.payExit("sess-1", BigDecimal("200")) as ParkingResult.Success).value
+
+        assertEquals("Ana Reyes", paid.entryAttendantName)
+        assertEquals("Rico Delgado", paid.exitAttendantName)
+    }
+
+    @Test
+    fun `has no collecting attendant while the stay is still open`() = runTest {
+        val repository = repositoryWithOpenShift()
+        server.enqueue(envelope(OPEN_SESSION_JSON))
+
+        val open = (repository.recordEntry("veh-1", "ABC 1234") as ParkingResult.Success).value
+
+        assertEquals("Ana Reyes", open.entryAttendantName)
+        assertNull(open.exitAttendantName)
+    }
+
     @Test
     fun `passes the API's own rejection through to the guard`() = runTest {
         val repository = repositoryWithOpenShift()
@@ -358,7 +385,9 @@ class DefaultParkingRepositoryTest {
               "status": "OPEN",
               "entryAt": "2026-09-07T02:00:00.000Z",
               "terminalName": "Basement",
-              "vehicleTypeName": "Car"
+              "vehicleTypeName": "Car",
+              "entryAttendantDisplayName": "Ana Reyes",
+              "exitAttendantDisplayName": null
             }
         """
 
@@ -375,7 +404,9 @@ class DefaultParkingRepositoryTest {
               "ratePlanName": "Hourly",
               "feeAmount": "150.00",
               "amountTendered": "200.00",
-              "changeGiven": "50.00"
+              "changeGiven": "50.00",
+              "entryAttendantDisplayName": "Ana Reyes",
+              "exitAttendantDisplayName": "Rico Delgado"
             }
         """
 

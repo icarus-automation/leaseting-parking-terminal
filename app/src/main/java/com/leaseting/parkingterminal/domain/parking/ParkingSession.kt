@@ -23,6 +23,10 @@ data class ParkingSession(
     val feeAmount: BigDecimal?,
     val amountTendered: BigDecimal?,
     val changeGiven: BigDecimal?,
+    /** Who booked the vehicle in, as a person. Printed on the stub. */
+    val entryAttendantName: String?,
+    /** Who took the money. Printed on the receipt. Null until paid. */
+    val exitAttendantName: String?,
 )
 
 enum class ParkingSessionStatus {

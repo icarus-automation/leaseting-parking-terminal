@@ -1,5 +1,7 @@
 package com.leaseting.parkingterminal.ui.terminal
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,16 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,8 +30,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leaseting.parkingterminal.R
 import com.leaseting.parkingterminal.domain.parking.ParkingTerminal
+import com.leaseting.parkingterminal.ui.components.CardTone
+import com.leaseting.parkingterminal.ui.components.EmptyState
+import com.leaseting.parkingterminal.ui.components.EyebrowLabel
+import com.leaseting.parkingterminal.ui.components.LoadingState
+import com.leaseting.parkingterminal.ui.components.SectionCard
+import com.leaseting.parkingterminal.ui.components.TerminalBarAction
+import com.leaseting.parkingterminal.ui.components.TerminalScaffold
 import com.leaseting.parkingterminal.ui.parking.userMessage
 import com.leaseting.parkingterminal.ui.theme.LeasetingParkingTerminalTheme
+import com.leaseting.parkingterminal.ui.theme.Sizes
+import com.leaseting.parkingterminal.ui.theme.Spacing
+import com.leaseting.parkingterminal.ui.theme.motion
 
 /**
  * Where a signed-in guard lands with no shift open. Picking a gate opens the
@@ -59,7 +65,6 @@ fun TerminalPickerScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TerminalPickerScreen(
     uiState: TerminalPickerUiState,
@@ -71,6 +76,7 @@ private fun TerminalPickerScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val failureMessage = uiState.failure?.userMessage()
+    val standard = motion.standard
 
     LaunchedEffect(failureMessage) {
         if (failureMessage != null) {
@@ -79,55 +85,73 @@ private fun TerminalPickerScreen(
         }
     }
 
-    Scaffold(
+    TerminalScaffold(
+        title = stringResource(R.string.terminal_picker_title),
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.terminal_picker_title)) },
-                actions = {
-                    TextButton(onClick = onSignOut) {
-                        Text(stringResource(R.string.action_sign_out))
-                    }
-                },
+        actions = {
+            TerminalBarAction(
+                text = stringResource(R.string.action_sign_out),
+                onClick = onSignOut,
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        when {
-            uiState.isLoading -> LoadingTerminals(Modifier.padding(innerPadding))
+        // One state at a time, faded rather than swapped, so a slow network does
+        // not flash a spinner and a list at whoever is watching.
+        Crossfade(
+            targetState = uiState.stage,
+            animationSpec = tween(standard),
+            label = "terminal-picker",
+            modifier = Modifier.padding(innerPadding),
+        ) { stage ->
+            when (stage) {
+                Stage.Loading -> LoadingState(stringResource(R.string.terminal_picker_loading))
 
-            uiState.terminals.isEmpty() -> NoTerminals(
-                onRetry = onRetry,
-                modifier = Modifier.padding(innerPadding),
-            )
+                Stage.Empty -> EmptyState(
+                    title = stringResource(R.string.terminal_picker_empty_title),
+                    body = stringResource(R.string.terminal_picker_empty_body),
+                    actionText = stringResource(R.string.action_retry),
+                    onAction = onRetry,
+                )
 
-            else -> LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item {
-                    Text(
-                        text = stringResource(R.string.terminal_picker_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                items(uiState.terminals, key = { it.id }) { terminal ->
-                    TerminalCard(
-                        terminal = terminal,
-                        isOpening = uiState.openingTerminalId == terminal.id,
-                        isEnabled = uiState.openingTerminalId == null,
-                        onClick = { onTerminalSelected(terminal.id) },
-                    )
+                Stage.Terminals -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(Spacing.Gutter),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Medium),
+                ) {
+                    item(key = "intro") {
+                        Column(
+                            modifier = Modifier.padding(bottom = Spacing.Tight),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
+                        ) {
+                            EyebrowLabel(stringResource(R.string.terminal_picker_section))
+                            Text(
+                                text = stringResource(R.string.terminal_picker_subtitle),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    items(uiState.terminals, key = { it.id }) { terminal ->
+                        TerminalCard(
+                            terminal = terminal,
+                            isOpening = uiState.openingTerminalId == terminal.id,
+                            isEnabled = uiState.openingTerminalId == null,
+                            onClick = { onTerminalSelected(terminal.id) },
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+/**
+ * A gate, and what tapping it will do. The action is spelled out rather than
+ * implied by an arrow: opening a shift is a commitment, and it should read like
+ * one before it is tapped.
+ */
 @Composable
 private fun TerminalCard(
     terminal: ParkingTerminal,
@@ -136,20 +160,20 @@ private fun TerminalCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = isEnabled, onClick = onClick),
+    SectionCard(
+        modifier = modifier.clickable(enabled = isEnabled, onClick = onClick),
+        tone = if (isOpening) CardTone.Brand else CardTone.Plain,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Gutter),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = terminal.name, style = MaterialTheme.typography.titleMedium)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Hair),
+            ) {
+                Text(text = terminal.name, style = MaterialTheme.typography.titleLarge)
                 Text(
                     text = terminal.propertyName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -157,54 +181,33 @@ private fun TerminalCard(
                 )
             }
             if (isOpening) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Sizes.Spinner),
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.terminal_picker_open),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
             }
         }
     }
 }
 
-@Composable
-private fun LoadingTerminals(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-    ) {
-        CircularProgressIndicator()
-        Text(
-            text = stringResource(R.string.terminal_picker_loading),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
 /**
- * Covers both "the org has none" and "the call failed", because from the gate
- * they look identical and the answer to both is the same: ask someone to check
- * the web client, then try again.
+ * The three things this screen can be showing. Naming them keeps the crossfade
+ * from restarting every time the list is re-emitted unchanged.
  */
-@Composable
-private fun NoTerminals(onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-    ) {
-        Text(
-            text = stringResource(R.string.terminal_picker_empty_title),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            text = stringResource(R.string.terminal_picker_empty_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        TextButton(onClick = onRetry) { Text(stringResource(R.string.action_retry)) }
+private enum class Stage { Loading, Empty, Terminals }
+
+private val TerminalPickerUiState.stage: Stage
+    get() = when {
+        isLoading -> Stage.Loading
+        terminals.isEmpty() -> Stage.Empty
+        else -> Stage.Terminals
     }
-}
 
 @Preview(showBackground = true)
 @Composable
@@ -218,6 +221,20 @@ private fun TerminalPickerPreview() {
                     ParkingTerminal("2", "Podium", true, "p1", "Brickstone", false),
                 ),
             ),
+            onTerminalSelected = {},
+            onRetry = {},
+            onFailureShown = {},
+            onSignOut = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun TerminalPickerEmptyPreview() {
+    LeasetingParkingTerminalTheme {
+        TerminalPickerScreen(
+            uiState = TerminalPickerUiState(isLoading = false),
             onTerminalSelected = {},
             onRetry = {},
             onFailureShown = {},

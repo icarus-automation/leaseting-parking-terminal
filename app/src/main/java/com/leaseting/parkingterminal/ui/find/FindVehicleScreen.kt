@@ -1,5 +1,8 @@
 package com.leaseting.parkingterminal.ui.find
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,17 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,11 +40,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.leaseting.parkingterminal.R
 import com.leaseting.parkingterminal.domain.parking.ParkingSession
 import com.leaseting.parkingterminal.domain.parking.ParkingSessionStatus
+import com.leaseting.parkingterminal.ui.components.EmptyState
+import com.leaseting.parkingterminal.ui.components.EyebrowLabel
+import com.leaseting.parkingterminal.ui.components.LoadingState
+import com.leaseting.parkingterminal.ui.components.SectionCard
+import com.leaseting.parkingterminal.ui.components.TerminalScaffold
 import com.leaseting.parkingterminal.ui.format.formatElapsed
 import com.leaseting.parkingterminal.ui.format.formatTicketCode
 import com.leaseting.parkingterminal.ui.format.formatTime
 import com.leaseting.parkingterminal.ui.parking.userMessage
 import com.leaseting.parkingterminal.ui.theme.LeasetingParkingTerminalTheme
+import com.leaseting.parkingterminal.ui.theme.Sizes
+import com.leaseting.parkingterminal.ui.theme.Spacing
+import com.leaseting.parkingterminal.ui.theme.motion
 import java.time.Instant
 
 /**
@@ -81,7 +86,6 @@ fun FindVehicleScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FindVehicleScreen(
     uiState: FindVehicleUiState,
@@ -96,6 +100,7 @@ private fun FindVehicleScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val codeFocus = remember { FocusRequester() }
     val failureMessage = uiState.failure?.userMessage()
+    val standard = motion.standard
     val settledMessage = uiState.settledCode
         ?.let { stringResource(R.string.find_code_already_settled, formatTicketCode(it)) }
 
@@ -117,17 +122,20 @@ private fun FindVehicleScreen(
     // keyboard needs somewhere for its characters to land, and this is it.
     LaunchedEffect(Unit) { runCatching { codeFocus.requestFocus() } }
 
-    Scaffold(
+    TerminalScaffold(
+        title = stringResource(R.string.find_title),
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.find_title)) }) },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
+            // The search panel keeps the surface colour so it reads as part of
+            // the bar above it, and the list below sits on the tinted page.
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(Spacing.Gutter),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Medium),
             ) {
                 OutlinedTextField(
                     value = uiState.ticketCode,
@@ -136,6 +144,7 @@ private fun FindVehicleScreen(
                     supportingText = { Text(stringResource(R.string.find_code_hint)) },
                     singleLine = true,
                     enabled = !uiState.isResolvingCode,
+                    shape = MaterialTheme.shapes.small,
                     textStyle = MaterialTheme.typography.headlineSmall.copy(
                         fontFamily = FontFamily.Monospace,
                     ),
@@ -147,7 +156,10 @@ private fun FindVehicleScreen(
                     keyboardActions = KeyboardActions(onSearch = { onSubmitCode() }),
                     trailingIcon = {
                         if (uiState.isResolvingCode) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(Sizes.SmallSpinner),
+                                strokeWidth = 2.dp,
+                            )
                         }
                     },
                     modifier = Modifier
@@ -160,6 +172,7 @@ private fun FindVehicleScreen(
                     onValueChange = onPlateQueryChange,
                     label = { Text(stringResource(R.string.find_plate_label)) },
                     singleLine = true,
+                    shape = MaterialTheme.shapes.small,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Characters,
                         imeAction = ImeAction.Search,
@@ -168,25 +181,42 @@ private fun FindVehicleScreen(
                 )
             }
 
-            HorizontalDivider()
+            Crossfade(
+                targetState = uiState.stage,
+                animationSpec = tween(standard),
+                label = "in-park",
+            ) { stage ->
+                when (stage) {
+                    Stage.Loading -> LoadingState(stringResource(R.string.find_loading))
 
-            when {
-                uiState.isLoading && uiState.sessions.isEmpty() -> Loading()
+                    Stage.Empty -> EmptyState(
+                        title = stringResource(R.string.find_empty_list),
+                        body = stringResource(R.string.find_empty_list_body),
+                    )
 
-                uiState.sessions.isEmpty() -> EmptyList(
-                    isSearching = uiState.plateQuery.isNotBlank(),
-                )
+                    Stage.NoMatch -> EmptyState(
+                        title = stringResource(R.string.find_empty_search),
+                        body = stringResource(R.string.find_empty_search_body),
+                    )
 
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(uiState.sessions, key = { it.id }) { session ->
-                        SessionRow(
-                            session = session,
-                            onClick = { onSessionSelected(session.id) },
-                        )
+                    Stage.Sessions -> LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(Spacing.Gutter),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    ) {
+                        item(key = "section") {
+                            EyebrowLabel(
+                                text = stringResource(R.string.find_section_in_park),
+                                modifier = Modifier.padding(bottom = Spacing.Small),
+                            )
+                        }
+                        items(uiState.sessions, key = { it.id }) { session ->
+                            SessionRow(
+                                session = session,
+                                onClick = { onSessionSelected(session.id) },
+                                modifier = Modifier.animateItem(),
+                            )
+                        }
                     }
                 }
             }
@@ -205,19 +235,23 @@ private fun SessionRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    SectionCard(
+        modifier = modifier.clickable(onClick = onClick),
+        contentPadding = Spacing.Medium,
+    ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.Medium),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Hair),
+            ) {
                 Text(text = session.plateNumber, style = MaterialTheme.typography.titleMedium)
                 Text(
                     text = "${formatTicketCode(session.ticketCode)} · ${session.vehicleTypeName}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = FontFamily.Monospace,
                 )
@@ -227,46 +261,42 @@ private fun SessionRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = formatElapsed(session.entryAt),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            ElapsedBadge(formatElapsed(session.entryAt))
         }
     }
 }
 
+/** How long this one has been in. The number a guard scans the list for. */
 @Composable
-private fun Loading(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-    ) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun EmptyList(isSearching: Boolean, modifier: Modifier = Modifier) {
-    Column(
+private fun ElapsedBadge(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-    ) {
-        Text(
-            text = stringResource(
-                if (isSearching) R.string.find_empty_search else R.string.find_empty_list,
-            ),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+            )
+            .padding(horizontal = Spacing.Small, vertical = Spacing.Tight),
+    )
 }
 
-@Preview(showBackground = true)
+/**
+ * What the list area is showing. An empty park and a search that found nothing
+ * are different problems with different answers, so they are different states.
+ */
+private enum class Stage { Loading, Empty, NoMatch, Sessions }
+
+private val FindVehicleUiState.stage: Stage
+    get() = when {
+        isLoading && sessions.isEmpty() -> Stage.Loading
+        sessions.isNotEmpty() -> Stage.Sessions
+        plateQuery.isNotBlank() -> Stage.NoMatch
+        else -> Stage.Empty
+    }
+
+@Preview(showBackground = true, heightDp = 780)
 @Composable
 private fun FindVehiclePreview() {
     LeasetingParkingTerminalTheme {
@@ -287,9 +317,43 @@ private fun FindVehiclePreview() {
                         feeAmount = null,
                         amountTendered = null,
                         changeGiven = null,
+                        entryAttendantName = "Ana Reyes",
+                        exitAttendantName = null,
+                    ),
+                    ParkingSession(
+                        id = "s2",
+                        ticketCode = "7XQP2LMN",
+                        plateNumber = "NBC 8891",
+                        status = ParkingSessionStatus.OPEN,
+                        entryAt = Instant.now().minusSeconds(900),
+                        exitAt = null,
+                        terminalName = "Podium",
+                        vehicleTypeName = "Motorcycle",
+                        ratePlanName = null,
+                        feeAmount = null,
+                        amountTendered = null,
+                        changeGiven = null,
+                        entryAttendantName = "Ana Reyes",
+                        exitAttendantName = null,
                     ),
                 ),
             ),
+            onTicketCodeChange = {},
+            onSubmitCode = {},
+            onPlateQueryChange = {},
+            onSessionSelected = {},
+            onSettledCodeShown = {},
+            onFailureShown = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, heightDp = 780)
+@Composable
+private fun FindVehicleEmptyPreview() {
+    LeasetingParkingTerminalTheme {
+        FindVehicleScreen(
+            uiState = FindVehicleUiState(isLoading = false),
             onTicketCodeChange = {},
             onSubmitCode = {},
             onPlateQueryChange = {},

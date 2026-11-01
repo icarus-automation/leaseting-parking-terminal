@@ -298,6 +298,8 @@ class DefaultParkingRepository(
         feeAmount = feeAmount?.toAmount(),
         amountTendered = amountTendered?.toAmount(),
         changeGiven = changeGiven?.toAmount(),
+        entryAttendantName = entryAttendantDisplayName?.takeIf { it.isNotBlank() },
+        exitAttendantName = exitAttendantDisplayName?.takeIf { it.isNotBlank() },
     )
 
     private fun FeeQuoteDto.toQuote() = FeeQuote(

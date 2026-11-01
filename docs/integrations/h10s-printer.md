@@ -237,6 +237,102 @@ errorlevel: 0 through 3
 
 No verified parameter semantics are available here for `printPDF417Code`, `print128BarCode`, `setCode`, darkness, or line height. Do not invent ranges or meanings.
 
+## 8a. Receipt line layout
+
+`printTableText` is the only two-column primitive in the JAR, and it is not
+usable for label/value rows on 58 mm paper.
+
+Observed behaviour with `weight = {1, 1}`:
+
+- Each column gets half the width, about 16 characters at `setTextSize(24f)`.
+- A value wider than its column is broken wherever the overflow falls, inside a
+  word or inside a number.
+
+Two field receipts from a live gate:
+
+```text
+Time out   09 Sep 2026, 7:
+46 PM
+Attendant   Parking Attenda
+nt
+```
+
+No pair of weights fixes this. Weights are relative and the service rounds them
+itself, and any column narrow enough to leave room for a long value is too
+narrow for the next one.
+
+The application lays rows out itself instead, in
+`data/printing/ReceiptLayout.kt`, and prints the finished strings with
+`printText`:
+
+- One line per row whenever `label + value` fits the width, with the value
+  padded out to the right margin.
+- Otherwise the label keeps its line and the value wraps beneath it at word
+  boundaries, right aligned. A single token wider than the paper is chopped
+  rather than dropped.
+
+```text
+Time out    09 Sep 2026, 7:46 PM
+Attendant      Parking Attendant
+```
+
+### The font is single width for ASCII and double width for everything else
+
+Laying rows out by counting characters is not enough, and the second field
+receipt is what proved it. The three money lines came back with their last digit
+orphaned:
+
+```text
+AMOUNT DUE              ₱150.0
+0
+```
+
+Every one of those lines was 32 characters, the same as `Time out` and
+`Attendant`, which printed fine. The only difference is the peso sign. `₱` is
+outside ASCII, and the printer's bitmap font draws it in a double-width cell, so
+a 32-character money line is 33 cells and the roll drops the last one.
+
+`ReceiptLayout.cells()` is the measurement everything uses:
+
+```text
+"₱150.00"   7 characters, 8 cells
+```
+
+A money row is now 31 characters and 32 cells. `ReceiptLayoutTest` asserts the
+cell width of every line it produces, so a row can no longer be a character
+short of wrapping without a test saying so.
+
+This is the usual arrangement on these printers (ASCII 12x24, everything else
+24x24) and the JAR exposes no way to ask about it. It was derived from the
+observed break, not assumed.
+
+### The one assumption left
+
+| Assumption | Where it lives | If it turns out wrong |
+| --- | --- | --- |
+| 58 mm holds 32 cells at `TEXT_SIZE_BODY` | `ReceiptLayout.COLUMNS` | Change that one constant. The separator rule and every row follow it. |
+
+It predates this layout: the separator rule has always printed `"-".repeat(32)`
+through `printText` and relied on the same cell.
+
+`ReceiptLayout` is pure Kotlin with no Android dependency, and
+`ReceiptLayoutTest` pins the field cases above plus the whole exit receipt as a
+golden block. Change the layout there and read the diff, rather than feeding
+paper through a handheld to find out.
+
+### Month names
+
+Unrelated to the JAR, but it reached the same paper. `DateTimeFormatter` asked
+`Locale.ROOT` for `MMM`, and Android resolves root through ICU, which answers
+with CLDR's placeholder rather than an English abbreviation:
+
+```text
+09 M09 2026
+```
+
+`ui/format/ParkingFormat.kt` names `Locale.US` for the date pattern. Times and
+money stay independent of whatever locale the handheld is set to.
+
 ## 9. Printer status
 
 The selected JAR provides no supported printer readiness, paper, hardware-error, or connection-status query.

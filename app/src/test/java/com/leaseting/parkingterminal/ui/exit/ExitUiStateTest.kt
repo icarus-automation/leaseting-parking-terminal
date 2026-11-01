@@ -101,6 +101,8 @@ class ExitUiStateTest {
                 feeAmount = BigDecimal("150.00"),
                 amountTendered = BigDecimal("200.00"),
                 changeGiven = BigDecimal("50.00"),
+                entryAttendantName = "Ana Reyes",
+                exitAttendantName = "Rico Delgado",
             ),
         )
         assertFalse(collected.canCollect)

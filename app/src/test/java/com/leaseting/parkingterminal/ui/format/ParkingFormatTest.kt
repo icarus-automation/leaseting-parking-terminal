@@ -4,6 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Money and durations, as a guard and a receipt see them.
@@ -54,5 +56,32 @@ class ParkingFormatTest {
     @Test
     fun `leaves a code of an unexpected length alone`() {
         assertEquals("SHORT", formatTicketCode("SHORT"))
+    }
+
+    /**
+     * The month arrives as letters, and the same letters on every handheld.
+     *
+     * A receipt came off a roll reading `09 M09 2026`: the formatter had asked
+     * root for a month abbreviation, and on Android root is resolved through
+     * ICU, which answers with CLDR's placeholder. Naming the locale is what
+     * fixes that, and pinning it here is what keeps a device's own locale from
+     * getting a say in what the paper says.
+     */
+    @Test
+    fun `writes the month in letters, whatever the device is set to`() {
+        val previousZone = TimeZone.getDefault()
+        val previousLocale = Locale.getDefault()
+        try {
+            TimeZone.setDefault(TimeZone.getTimeZone("Asia/Manila"))
+            Locale.setDefault(Locale.forLanguageTag("ar-EG"))
+
+            assertEquals(
+                "09 Sep 2026, 7:46 PM",
+                formatTime(Instant.parse("2026-09-09T11:46:00Z")),
+            )
+        } finally {
+            TimeZone.setDefault(previousZone)
+            Locale.setDefault(previousLocale)
+        }
     }
 }

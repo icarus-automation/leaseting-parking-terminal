@@ -1,30 +1,22 @@
 package com.leaseting.parkingterminal.ui.entry
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,13 +38,25 @@ import com.leaseting.parkingterminal.R
 import com.leaseting.parkingterminal.domain.parking.ParkingSession
 import com.leaseting.parkingterminal.domain.parking.ParkingSessionStatus
 import com.leaseting.parkingterminal.domain.parking.VehicleType
+import com.leaseting.parkingterminal.ui.components.CardDivider
+import com.leaseting.parkingterminal.ui.components.CardTone
+import com.leaseting.parkingterminal.ui.components.ConfirmationHeader
+import com.leaseting.parkingterminal.ui.components.EyebrowLabel
+import com.leaseting.parkingterminal.ui.components.PrimaryAction
+import com.leaseting.parkingterminal.ui.components.ScreenColumn
+import com.leaseting.parkingterminal.ui.components.SectionCard
+import com.leaseting.parkingterminal.ui.components.TerminalBarAction
+import com.leaseting.parkingterminal.ui.components.TerminalScaffold
 import com.leaseting.parkingterminal.ui.format.formatTicketCode
 import com.leaseting.parkingterminal.ui.format.formatTime
 import com.leaseting.parkingterminal.ui.parking.userMessage
 import com.leaseting.parkingterminal.ui.print.PrintState
 import com.leaseting.parkingterminal.ui.print.PrintStatusRow
 import com.leaseting.parkingterminal.ui.theme.LeasetingParkingTerminalTheme
-import com.leaseting.parkingterminal.ui.theme.extendedColors
+import com.leaseting.parkingterminal.ui.theme.Sizes
+import com.leaseting.parkingterminal.ui.theme.Spacing
+import com.leaseting.parkingterminal.ui.theme.motion
+import com.leaseting.parkingterminal.ui.theme.swap
 import java.time.Instant
 
 /**
@@ -79,7 +84,6 @@ fun EntryScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EntryScreen(
     uiState: EntryUiState,
@@ -95,6 +99,7 @@ private fun EntryScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val plateFocus = remember { FocusRequester() }
     val failureMessage = uiState.failure?.userMessage()
+    val screenSwap = motion.swap()
 
     LaunchedEffect(failureMessage) {
         if (failureMessage != null) {
@@ -104,63 +109,54 @@ private fun EntryScreen(
     }
 
     // The plate is the only thing that has to be typed, so the caret starts
-    // there — both on arrival and after the form clears for the next vehicle.
+    // there, both on arrival and after the form clears for the next vehicle.
     LaunchedEffect(uiState.recorded) {
         if (uiState.recorded == null) runCatching { plateFocus.requestFocus() }
     }
 
-    Scaffold(
+    TerminalScaffold(
+        title = stringResource(R.string.entry_title),
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.entry_title)) },
-                actions = {
-                    TextButton(onClick = onDone) { Text(stringResource(R.string.action_done)) }
-                },
-            )
+        actions = {
+            TerminalBarAction(text = stringResource(R.string.action_done), onClick = onDone)
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            val recorded = uiState.recorded
-            if (recorded != null) {
-                StubCard(
-                    session = recorded,
-                    printState = uiState.printState,
-                    onReprint = onReprint,
-                )
-                Button(
-                    onClick = onNextVehicle,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(BIG_BUTTON_HEIGHT),
-                ) {
-                    Text(
-                        text = stringResource(R.string.entry_next_vehicle),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+        ScreenColumn(innerPadding) {
+            // The form giving way to the stub is the only thing that happens on
+            // this screen, so it is the one place worth animating.
+            AnimatedContent(
+                targetState = uiState.recorded,
+                transitionSpec = { screenSwap },
+                contentKey = { it != null },
+                label = "entry",
+            ) { recorded ->
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.Gutter)) {
+                    if (recorded != null) {
+                        StubCard(
+                            session = recorded,
+                            printState = uiState.printState,
+                            onReprint = onReprint,
+                        )
+                        PrimaryAction(
+                            text = stringResource(R.string.entry_next_vehicle),
+                            onClick = onNextVehicle,
+                        )
+                    } else {
+                        EntryForm(
+                            uiState = uiState,
+                            plateFocus = plateFocus,
+                            onVehicleTypeSelected = onVehicleTypeSelected,
+                            onPlateChange = onPlateChange,
+                            onSubmit = onSubmit,
+                        )
+                    }
                 }
-            } else {
-                EntryForm(
-                    uiState = uiState,
-                    plateFocus = plateFocus,
-                    onVehicleTypeSelected = onVehicleTypeSelected,
-                    onPlateChange = onPlateChange,
-                    onSubmit = onSubmit,
-                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EntryForm(
     uiState: EntryUiState,
@@ -170,62 +166,70 @@ private fun EntryForm(
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(
-            text = stringResource(R.string.entry_vehicle_type_label),
-            style = MaterialTheme.typography.labelLarge,
-        )
-        if (uiState.isLoadingVehicleTypes) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-        } else {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                uiState.vehicleTypes.forEach { type ->
-                    FilterChip(
-                        selected = uiState.selectedVehicleTypeId == type.id,
-                        onClick = { onVehicleTypeSelected(type.id) },
-                        label = { Text(type.name) },
-                        enabled = !uiState.isSubmitting,
-                    )
-                }
-            }
-        }
-
-        OutlinedTextField(
-            value = uiState.plateNumber,
-            onValueChange = onPlateChange,
-            label = { Text(stringResource(R.string.entry_plate_label)) },
-            singleLine = true,
-            enabled = !uiState.isSubmitting,
-            textStyle = MaterialTheme.typography.headlineSmall,
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Characters,
-                imeAction = ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(plateFocus),
-        )
-
-        Button(
-            onClick = onSubmit,
-            enabled = uiState.canSubmit,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(BIG_BUTTON_HEIGHT),
-        ) {
-            if (uiState.isSubmitting) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.Gutter)) {
+        SectionCard(verticalSpacing = Spacing.Medium) {
+            EyebrowLabel(stringResource(R.string.entry_vehicle_type_label))
+            if (uiState.isLoadingVehicleTypes) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(Sizes.Spinner),
+                    strokeWidth = 2.dp,
                 )
             } else {
-                Text(
-                    text = stringResource(R.string.entry_submit),
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Small),
+                ) {
+                    uiState.vehicleTypes.forEach { type ->
+                        FilterChip(
+                            selected = uiState.selectedVehicleTypeId == type.id,
+                            onClick = { onVehicleTypeSelected(type.id) },
+                            label = {
+                                Text(
+                                    text = type.name,
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            },
+                            enabled = !uiState.isSubmitting,
+                            shape = MaterialTheme.shapes.small,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor =
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor =
+                                    MaterialTheme.colorScheme.onPrimaryContainer,
+                            ),
+                            modifier = Modifier.height(Sizes.MinimumTouchTarget),
+                        )
+                    }
+                }
             }
+
+            CardDivider()
+
+            OutlinedTextField(
+                value = uiState.plateNumber,
+                onValueChange = onPlateChange,
+                label = { Text(stringResource(R.string.entry_plate_label)) },
+                singleLine = true,
+                enabled = !uiState.isSubmitting,
+                shape = MaterialTheme.shapes.small,
+                textStyle = MaterialTheme.typography.headlineSmall,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(plateFocus),
+            )
         }
+
+        PrimaryAction(
+            text = stringResource(R.string.entry_submit),
+            onClick = onSubmit,
+            enabled = uiState.canSubmit,
+            isBusy = uiState.isSubmitting,
+        )
     }
 }
 
@@ -241,42 +245,50 @@ private fun StubCard(
     onReprint: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    SectionCard(modifier = modifier, tone = CardTone.Confirmed) {
+        ConfirmationHeader(stringResource(R.string.entry_recorded))
+        CardDivider()
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(vertical = Spacing.Small),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.Tight),
         ) {
-            Text(
-                text = stringResource(R.string.entry_recorded),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.extendedColors.success,
+            EyebrowLabel(
+                text = stringResource(R.string.entry_stub_code),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = formatTicketCode(session.ticketCode),
                 style = MaterialTheme.typography.headlineLarge,
                 fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.Center,
             )
-            Text(text = session.plateNumber, style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = session.plateNumber,
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+            )
             Text(
                 text = "${session.vehicleTypeName} · ${formatTime(session.entryAt)}",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            PrintStatusRow(
-                state = printState,
-                onReprint = onReprint,
-                reprintLabelRes = R.string.entry_reprint,
+                textAlign = TextAlign.Center,
             )
         }
+
+        CardDivider()
+        PrintStatusRow(
+            state = printState,
+            onReprint = onReprint,
+            reprintLabelRes = R.string.entry_reprint,
+        )
     }
 }
 
-private val BIG_BUTTON_HEIGHT = 64.dp
-
-@Preview(showBackground = true)
+@Preview(showBackground = true, heightDp = 780)
 @Composable
 private fun EntryFormPreview() {
     LeasetingParkingTerminalTheme {
@@ -302,7 +314,7 @@ private fun EntryFormPreview() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, heightDp = 780)
 @Composable
 private fun EntryStubPreview() {
     LeasetingParkingTerminalTheme {
@@ -322,6 +334,8 @@ private fun EntryStubPreview() {
                     feeAmount = null,
                     amountTendered = null,
                     changeGiven = null,
+                    entryAttendantName = "Ana Reyes",
+                    exitAttendantName = null,
                 ),
                 printState = PrintState.Sent,
             ),
