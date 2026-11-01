@@ -9,7 +9,7 @@ class AudienceTest {
     fun `maps the wire values leaseting-api reports`() {
         assertEquals(Audience.PARKING, Audience.fromWireValue("parking"))
         assertEquals(Audience.STAFF, Audience.fromWireValue("staff"))
-        assertEquals(Audience.TENANT, Audience.fromWireValue("tenant"))
+        assertEquals(Audience.RESIDENT, Audience.fromWireValue("resident"))
     }
 
     @Test

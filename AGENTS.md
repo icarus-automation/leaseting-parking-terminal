@@ -12,7 +12,7 @@ This is an operational terminal application. It is separate from the resident mo
 
 - `leaseting-client`: Web administration and reports
 - `leaseting-api`: NestJS backend and PostgreSQL system of record
-- `leaseting-mobile`: Residence Care mobile app
+- `leaseting-residence-care`: Residence Care mobile app
 - `leaseting-parking-terminal`: This Kotlin Android application 
 
 ## Stack

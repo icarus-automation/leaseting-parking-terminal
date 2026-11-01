@@ -10,7 +10,7 @@ package com.leaseting.parkingterminal.domain.auth
  */
 enum class Audience(private val wireValue: String) {
     STAFF("staff"),
-    TENANT("tenant"),
+    RESIDENT("resident"),
     PARKING("parking"),
 
     /** A value this build does not know — treated as "not ours". */

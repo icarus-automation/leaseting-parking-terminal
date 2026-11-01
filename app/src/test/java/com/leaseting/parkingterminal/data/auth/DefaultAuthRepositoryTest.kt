@@ -87,7 +87,7 @@ class DefaultAuthRepositoryTest {
     @Test
     fun `revokes the token of an account it turns away`() = runTest {
         server.enqueue(signInResponse(token = "session-token"))
-        server.enqueue(currentUserResponse(audience = "tenant"))
+        server.enqueue(currentUserResponse(audience = "resident"))
         server.enqueue(MockResponse().setResponseCode(200).setBody("{}"))
 
         repository().signIn("juan.delacruz@gmail.com", "juan101rent")
